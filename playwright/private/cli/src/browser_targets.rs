@@ -36,6 +36,8 @@ impl From<BrowserTarget> for HttpFile {
 pub fn get_browser_rules(
     browsers_workspace_name_prefix: &str,
     browser_json_path: &PathBuf,
+    allowed_browsers: &[String],
+    allowed_platforms: &[String],
 ) -> std::io::Result<Vec<BrowserTarget>> {
     let browsers_json = std::fs::read_to_string(browser_json_path)?;
     let browsers: Browsers = serde_json::from_str(&browsers_json)?;
@@ -51,6 +53,9 @@ pub fn get_browser_rules(
     let mut browser_rules: Vec<BrowserTarget> = browsers
         .browsers
         .into_iter()
+        .filter(|browser| {
+            allowed_browsers.is_empty() || allowed_browsers.contains(&browser.name)
+        })
         .flat_map(|browser| {
             if has_headless {
                 return vec![browser];
@@ -78,6 +83,11 @@ pub fn get_browser_rules(
                 .iter()
                 .filter_map(|(platform, template)| {
                     if *platform == Platform::Unknown {
+                        return None;
+                    }
+                    if !allowed_platforms.is_empty()
+                        && !allowed_platforms.contains(&platform.to_string())
+                    {
                         return None;
                     }
                     match (
@@ -120,7 +130,9 @@ pub fn get_browser_rules(
                                 http_file_workspace_name: format!(
                                     "{browsers_workspace_name_prefix}-{browser_name}-{platform_str}"
                                 ),
-                                http_file_path: template.replace("{revision}", revision).replace("{browserVersion}", &browser_version),
+                                http_file_path: template
+                                    .replace("{revision}", revision)
+                                    .replace("{browserVersion}", &browser_version),
                                 label: format!("{browser_name}-{platform_str}"),
                                 output_dir: format!(
                                     "{platform_str}/{}-{}",

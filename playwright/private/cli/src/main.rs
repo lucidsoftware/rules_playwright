@@ -16,11 +16,15 @@ mod flags {
     xflags::xflags! {
         cmd rules-playwright {
             cmd workspace  {
+                repeated --allowed-browser allowed_browsers: String
+                repeated --allowed-platform allowed_platforms: String
                 required --browser-json-path browser_json_path: PathBuf
                 required --browsers-workspace-name-prefix browsers_workspace_name_prefix: String
                 required --rules-playwright-cannonical-name rules_playwright_cannonical_name: String
             }
             cmd http-files {
+                repeated --allowed-browser allowed_browsers: String
+                repeated --allowed-platform allowed_platforms: String
                 required --browser-json-path browser_json_path: PathBuf
                 required --browsers-workspace-name-prefix browsers_workspace_name_prefix: String
             }
@@ -47,16 +51,25 @@ pub fn main() -> std::io::Result<()> {
         flags::RulesPlaywrightCmd::Workspace(cmd) => {
             templates::write_workspace(
                 &out_dir,
-                get_browser_rules(&cmd.browsers_workspace_name_prefix, &cmd.browser_json_path)?,
+                get_browser_rules(
+                    &cmd.browsers_workspace_name_prefix,
+                    &cmd.browser_json_path,
+                    &cmd.allowed_browser,
+                    &cmd.allowed_platform,
+                )?,
                 &cmd.rules_playwright_cannonical_name,
             )?;
         }
         flags::RulesPlaywrightCmd::HttpFiles(cmd) => {
-            let http_files: Vec<HttpFile> =
-                get_browser_rules(&cmd.browsers_workspace_name_prefix, &cmd.browser_json_path)?
-                    .into_iter()
-                    .map(|b| b.into())
-                    .collect();
+            let http_files: Vec<HttpFile> = get_browser_rules(
+                &cmd.browsers_workspace_name_prefix,
+                &cmd.browser_json_path,
+                &cmd.allowed_browser,
+                &cmd.allowed_platform,
+            )?
+            .into_iter()
+            .map(|b| b.into())
+            .collect();
             serde_json::to_writer(std::io::stdout(), &http_files)?;
         }
         flags::RulesPlaywrightCmd::Unzip(cmd) => {

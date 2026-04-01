@@ -1,6 +1,8 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
+use std::{
+    collections::HashMap,
+    fmt::{Display, Formatter},
+};
 
 // Main structure representing the entire JSON
 #[derive(Debug, Serialize, Deserialize)]
@@ -75,6 +77,12 @@ impl PlatformBase for Platform {
             Platform::Mac15 | Platform::Mac15Arm64 => "mac15",
             Platform::Unknown => "<unknown>",
         }
+    }
+}
+
+impl Display for Platform {
+    fn fmt(&self, formatter: &mut Formatter) -> std::fmt::Result {
+        write!(formatter, "{}", serde_plain::to_string(self).unwrap())
     }
 }
 

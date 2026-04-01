@@ -23,6 +23,14 @@ Base name for generated repositories, allowing more than one playwright toolchai
 Overriding the default is only permitted in the root module.
 """, default = _DEFAULT_NAME),
     "playwright_version": attr.string(doc = "Explicit version of playwright to download browsers.json from"),
+    "allowed_browsers": attr.string_list(
+        default = [],
+        doc = "The list of browsers to declare. If empty, all browsers are included",
+    ),
+    "allowed_platforms": attr.string_list(
+        default = [],
+        doc = "The list of platforms to declare browsers for. If empty, all platforms are included",
+    ),
     "browsers_download_urls": attr.string_list(
         default = [
             # "https://cdn.playwright.dev/dbazure/download/playwright",
@@ -66,16 +74,22 @@ def _extension_impl(module_ctx):
                 module_ctx.watch(cli_path)
 
             # Step 1: use module_ctx exec to get the list of browsers to iterate over and declare with http file
-            result = module_ctx.execute(
-                [
-                    cli,
-                    "http-files",
-                    "--browser-json-path",
-                    get_browsers_json_path(module_ctx, repo.playwright_version, repo.browsers_json),
-                    "--browsers-workspace-name-prefix",
-                    repo.name,
-                ],
-            )
+            cli_arguments = [
+                cli,
+                "http-files",
+                "--browser-json-path",
+                get_browsers_json_path(module_ctx, repo.playwright_version, repo.browsers_json),
+                "--browsers-workspace-name-prefix",
+                repo.name,
+            ]
+
+            for browser in repo.allowed_browsers:
+                cli_arguments.extend(["--allowed-browser", browser])
+
+            for platform in repo.allowed_platforms:
+                cli_arguments.extend(["--allowed-platform", platform])
+
+            result = module_ctx.execute(cli_arguments)
             if result.return_code != 0:
                 fail("http-files command failed", result.stdout, result.stderr)
 
@@ -100,6 +114,8 @@ def _extension_impl(module_ctx):
             playwright_repository(
                 name = name,
                 playwright_version = repo.playwright_version,
+                allowed_browsers = repo.allowed_browsers,
+                allowed_platforms = repo.allowed_platforms,
                 browsers_json = repo.browsers_json,
                 browsers_workspace_name_prefix = name,
                 # Map the apparant name of the module to the cannonical name

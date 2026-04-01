@@ -49,18 +49,24 @@ def _playwright_repo_impl(ctx):
     if ctx.attr.browsers_json:
         ctx.watch(ctx.attr.browsers_json)
 
-    result = ctx.execute(
-        [
-            get_cli_path(ctx),
-            "workspace",
-            "--browser-json-path",
-            get_browsers_json_path(ctx, playwright_version, ctx.attr.browsers_json),
-            "--browsers-workspace-name-prefix",
-            ctx.attr.browsers_workspace_name_prefix,
-            "--rules-playwright-cannonical-name",
-            ctx.attr.rules_playwright_cannonical_name,
-        ],
-    )
+    cli_arguments = [
+        get_cli_path(ctx),
+        "workspace",
+        "--browser-json-path",
+        get_browsers_json_path(ctx, playwright_version, ctx.attr.browsers_json),
+        "--browsers-workspace-name-prefix",
+        ctx.attr.browsers_workspace_name_prefix,
+        "--rules-playwright-cannonical-name",
+        ctx.attr.rules_playwright_cannonical_name,
+    ]
+
+    for browser in ctx.attr.allowed_browsers:
+        cli_arguments.extend(["--allowed-browser", browser])
+
+    for platform in ctx.attr.allowed_platforms:
+        cli_arguments.extend(["--allowed-platform", platform])
+
+    result = ctx.execute(cli_arguments)
 
     if result.return_code != 0:
         fail(ctx.attr.name, "workspace command failed", result.stdout, result.stderr)
@@ -80,6 +86,14 @@ playwright_repository = repository_rule(
             mandatory = False,
             allow_single_file = [".json"],
             doc = "The package.json file to use to find the version of playwright to install",
+        ),
+        "allowed_browsers": attr.string_list(
+            default = [],
+            doc = "The list of browsers to declare. If empty, all browsers are included",
+        ),
+        "allowed_platforms": attr.string_list(
+            default = [],
+            doc = "The list of platforms to declare browsers for. If empty, all platforms are included",
         ),
         "browsers_json": attr.label(
             allow_single_file = True,
@@ -103,16 +117,23 @@ def _define_browsers_impl(rctx):
         rctx.watch(cli_path)
 
     rctx.watch(rctx.attr.browsers_json)
-    result = rctx.execute(
-        [
-            get_cli_path(rctx),
-            "http-files",
-            "--browser-json-path",
-            rctx.path(rctx.attr.browsers_json),
-            "--browsers-workspace-name-prefix",
-            rctx.attr.name,
-        ],
-    )
+
+    cli_arguments = [
+        get_cli_path(rctx),
+        "http-files",
+        "--browser-json-path",
+        rctx.path(rctx.attr.browsers_json),
+        "--browsers-workspace-name-prefix",
+        rctx.attr.name,
+    ]
+
+    for browser in rctx.attr.allowed_browsers:
+        cli_arguments.extend(["--allowed-browser", browser])
+
+    for platform in rctx.attr.allowed_platforms:
+        cli_arguments.extend(["--allowed-platform", platform])
+
+    result = rctx.execute(cli_arguments)
     if result.return_code != 0:
         fail("http-files command failed", result.stdout, result.stderr)
 
@@ -141,7 +162,7 @@ def _define_browsers_impl(rctx):
         result_build.append("""\
         http_file(
             name = "{name}",
-            {integrity} 
+            {integrity}
             {urls}
         )
 """.format(
@@ -160,6 +181,14 @@ def _define_browsers_impl(rctx):
 define_browsers = repository_rule(
     implementation = _define_browsers_impl,
     attrs = {
+        "allowed_browsers": attr.string_list(
+            default = [],
+            doc = "The list of browsers to declare. If empty, all browsers are included",
+        ),
+        "allowed_platforms": attr.string_list(
+            default = [],
+            doc = "The list of platforms to declare browsers for. If empty, all platforms are included",
+        ),
         "browsers_json": attr.label(allow_single_file = True),
         "browsers_download_urls": attr.string_list(
             default = [
