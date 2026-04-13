@@ -21,9 +21,12 @@ toolchains_musl.config(
     extra_target_compatible_with = ["@//tools/linkers:musl"],
 )
 
-bazel_dep(name = "llvm", version = "0.6.0", dev_dependency = True)
+bazel_dep(name = "llvm", version = "0.6.0")
 
-register_toolchains("@llvm//toolchain:all")
+register_toolchains(
+    "@llvm//toolchain:all",
+    dev_dependency = True,
+)
 
 bazel_dep(name = "buildifier_prebuilt", version = "6.1.2", dev_dependency = True)
 bazel_dep(
