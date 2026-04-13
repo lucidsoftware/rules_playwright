@@ -6,5 +6,6 @@ node_modules
 out/
 # Added by cargo
 
+/bazel/bazel_downloader.cfg
 /target
 MODULE.bazel.lock

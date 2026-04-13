@@ -13,6 +13,9 @@ common --nolegacy_external_runfiles
 # https://bazelbuild.slack.com/archives/C014RARENH0/p1691158021917459?thread_ts=1691156601.420349&cid=C014RARENH0
 common --check_direct_dependencies=off
 
+# Fixes https://github.com/cerisier/toolchains_llvm_bootstrapped/issues/180
+build --@llvm//config:experimental_stub_libgcc_s
+
 # Minimize the size of our rust binaries
 build:release --compilation_mode=opt
 build:release --@rules_rust//rust/settings:lto=fat
